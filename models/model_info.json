@@ -1,0 +1,45 @@
+{
+  "scikit_learn_version": "1.9.1",
+  "seed": 42,
+  "data_seed": 7,
+  "threshold": 0.7,
+  "numeric_features": [
+    "distance_km",
+    "items",
+    "hour",
+    "prep_minutes",
+    "courier_months"
+  ],
+  "categorical_features": [
+    "weather",
+    "day_type",
+    "vehicle"
+  ],
+  "best_settings": {
+    "model__C": 10.0,
+    "model__solver": "liblinear"
+  },
+  "test_results": {
+    "threshold": 0.7,
+    "confusion_matrix": [
+      [
+        578,
+        55
+      ],
+      [
+        64,
+        53
+      ]
+    ],
+    "precision": 0.4907,
+    "recall": 0.453,
+    "f1": 0.4711,
+    "roc_auc": 0.7951,
+    "flagged_orders": 108,
+    "costs": {
+      "flag_nobody": 1755,
+      "flag_everybody": 3000,
+      "model": 1392
+    }
+  }
+}

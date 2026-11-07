@@ -5,7 +5,14 @@ import pandas as pd
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, make_scorer, precision_score, recall_score
+from sklearn.metrics import (
+    confusion_matrix,
+    f1_score,
+    make_scorer,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import (
     GridSearchCV,
     StratifiedKFold,
@@ -153,3 +160,44 @@ def choose_threshold(
     best_threshold = float(results.loc[best_index, "threshold"])
 
     return best_threshold, results
+
+
+def evaluate_test_predictions(
+    y_true,
+    probabilities,
+    threshold,
+) -> dict:
+    """Evaluate final predictions at the chosen threshold."""
+    true_values = np.asarray(y_true)
+    probability_values = np.asarray(probabilities)
+    flagged = probability_values >= threshold
+
+    flag_nobody = np.zeros(len(true_values), dtype=bool)
+    flag_everybody = np.ones(len(true_values), dtype=bool)
+
+    return {
+        "threshold": threshold,
+        "confusion_matrix": confusion_matrix(true_values, flagged).tolist(),
+        "precision": round(
+            precision_score(true_values, flagged, zero_division=0),
+            4,
+        ),
+        "recall": round(
+            recall_score(true_values, flagged, zero_division=0),
+            4,
+        ),
+        "f1": round(
+            f1_score(true_values, flagged, zero_division=0),
+            4,
+        ),
+        "roc_auc": round(
+            roc_auc_score(true_values, probability_values),
+            4,
+        ),
+        "flagged_orders": int(flagged.sum()),
+        "costs": {
+            "flag_nobody": order_cost(true_values, flag_nobody),
+            "flag_everybody": order_cost(true_values, flag_everybody),
+            "model": order_cost(true_values, flagged),
+        },
+    }
