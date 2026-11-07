@@ -1,0 +1,5 @@
+model,accuracy_mean,accuracy_std,precision_mean,precision_std,recall_mean,recall_std,f1_mean,f1_std,roc_auc_mean,roc_auc_std
+Dummy baseline,0.844,0.0009,0.0,0.0,0.0,0.0,0.0,0.0,0.5,0.0
+Logistic regression,0.8622,0.0085,0.6541,0.0653,0.242,0.0526,0.3516,0.0644,0.7951,0.0342
+Balanced logistic regression,0.7369,0.0187,0.3328,0.0267,0.6809,0.0493,0.4469,0.0337,0.7947,0.0338
+Balanced random forest,0.8387,0.0116,0.4853,0.0371,0.4042,0.0683,0.4363,0.035,0.7748,0.0213
