@@ -2,21 +2,28 @@
 
 from pathlib import Path
 
+from sklearn.model_selection import cross_val_predict
+
 from latedeliveries.data import make_orders
-from latedeliveries.evaluation import compare_models, tune_balanced_logistic
+from latedeliveries.evaluation import (
+    choose_threshold,
+    compare_models,
+    make_folds,
+    tune_balanced_logistic,
+)
 from latedeliveries.pipeline import split_orders
 
 
 def main() -> int:
-    """Compare and tune models using only the training data."""
+    """Compare, tune, and select a threshold using training data."""
     orders = make_orders()
     x_train, _, y_train, _ = split_orders(orders)
 
     results = compare_models(x_train, y_train)
 
-    report_path = Path("reports/cv_results.csv")
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    results.to_csv(report_path, index=False)
+    comparison_path = Path("reports/cv_results.csv")
+    comparison_path.parent.mkdir(parents=True, exist_ok=True)
+    results.to_csv(comparison_path, index=False)
 
     print("Cross-validation results:")
     print(results.to_string(index=False))
@@ -41,7 +48,30 @@ def main() -> int:
     print(f"Improvement from tuning: {improvement:.4f}")
     print(f"Tuning beat the fold-to-fold spread: {beat_fold_spread}")
     print()
-    print(f"Comparison saved to: {report_path}")
+
+    out_of_fold_probabilities = cross_val_predict(
+        search.best_estimator_,
+        x_train,
+        y_train,
+        cv=make_folds(),
+        method="predict_proba",
+        n_jobs=-1,
+    )[:, 1]
+
+    best_threshold, threshold_results = choose_threshold(
+        y_train,
+        out_of_fold_probabilities,
+    )
+
+    threshold_path = Path("reports/threshold_costs.csv")
+    threshold_results.to_csv(threshold_path, index=False)
+
+    minimum_cost = int(threshold_results["cost"].min())
+
+    print("Threshold results:")
+    print(f"Best threshold: {best_threshold:.2f}")
+    print(f"Lowest cross-validated training cost: ${minimum_cost}")
+    print(f"Threshold table saved to: {threshold_path}")
 
     return 0
 

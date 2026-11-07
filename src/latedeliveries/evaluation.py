@@ -1,5 +1,6 @@
 """Model comparison, tuning, and evaluation functions."""
 
+import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -20,6 +21,10 @@ SCORING = {
     "f1": make_scorer(f1_score, zero_division=0),
     "roc_auc": "roc_auc",
 }
+
+VOUCHER_COST = 4
+MISSED_LATE_COST = 15
+THRESHOLDS = [round(value / 100, 2) for value in range(5, 100, 5)]
 
 
 def make_folds() -> StratifiedKFold:
@@ -102,3 +107,49 @@ def tune_balanced_logistic(
     search.fit(x_train, y_train)
 
     return search
+
+
+def order_cost(y_true, flagged) -> int:
+    """Return voucher costs plus costs from missed late orders."""
+    true_values = np.asarray(y_true)
+    flagged_values = np.asarray(flagged, dtype=bool)
+
+    voucher_total = int(flagged_values.sum()) * VOUCHER_COST
+    missed_late = (true_values == 1) & ~flagged_values
+    missed_late_total = int(missed_late.sum()) * MISSED_LATE_COST
+
+    return voucher_total + missed_late_total
+
+
+def choose_threshold(
+    y_true,
+    probabilities,
+    thresholds=None,
+) -> tuple[float, pd.DataFrame]:
+    """Return the threshold with the lowest total business cost."""
+    true_values = np.asarray(y_true)
+    probability_values = np.asarray(probabilities)
+
+    if thresholds is None:
+        thresholds = THRESHOLDS
+
+    rows = []
+
+    for threshold in thresholds:
+        flagged = probability_values >= threshold
+        missed_late = (true_values == 1) & ~flagged
+
+        rows.append(
+            {
+                "threshold": threshold,
+                "cost": order_cost(true_values, flagged),
+                "flagged_orders": int(flagged.sum()),
+                "missed_late_orders": int(missed_late.sum()),
+            }
+        )
+
+    results = pd.DataFrame(rows)
+    best_index = results["cost"].idxmin()
+    best_threshold = float(results.loc[best_index, "threshold"])
+
+    return best_threshold, results
